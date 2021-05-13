@@ -1,9 +1,13 @@
 from flask import Flask, jsonify, request
 from example_find_path import get_path_len
-
+from flask_cors import CORS
 import logging
 
 app = Flask(__name__)
+
+CORS(app, resources={r"/*": {"origins": "*"}})
+
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
