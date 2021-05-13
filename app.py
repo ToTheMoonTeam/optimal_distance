@@ -19,26 +19,61 @@ def no_request_argument_provided_error(argument):
 lon_1 = 60.01774
 lat_1 = 30.23169
 
+shops = [
+    {
+        "name": "Карьер Дачное",
+        "lon_1": 59.778673,
+        "lat_1": 30.976736,
+        "products": {"песок": 170, "супесь": 100},
+        "contact": "89213238747, Заффор",
+    },
+    {
+        "name": "Карьер Приморское шоссе",
+        "lon_1": 60.176215,
+        "lat_1": 29.324035,
+        "products": {"песок": 190, "супесь": 90},
+        "contact": "7921-924-67-37, 905-45-35",
+    }
+]
+
+
+def koeff_from_transport_type(transport_type):
+    # самосвала 20м3
+    if transport_type == "1":
+        return 10
+    # самосвала 10м3
+    elif transport_type == "2":
+        return 20
+    else:
+        koeff = 1
+
 
 @app.route('/')
-def hello_world():
-    request_keys = ["target_lon", "target_lat", "material", "transport_type"]
+def get_routes():
+    request_keys = ["target_lon", "target_lat", "material", "transport_type", "amount"]
     for item in request_keys:
         if item not in request.args:
             return no_request_argument_provided_error(item)
+
     transport_type = request.args["transport_type"]
-    if transport_type == "1":
-        koeff = 1
-    elif transport_type == "2":
-        koeff = 2
-    elif transport_type == "3":
-        koeff = 3
-    else:
-        koeff = 1
-    material_price = 0 * 0
+    material = request.args["material"]
+    amount = int(request.args["amount"])
+    k = koeff_from_transport_type(transport_type)
+    candidates = []
+    for shop in shops:
+        if material in shop["products"]:
+            final_price = shop["products"][material] * amount + \
+                          get_path_len(shop["lon_1"], shop["lat_1"],
+                                       float(request.args["target_lon"]), float(request.args["target_lat"])) * k
+            response_row = {"final_price": final_price, "contact": shop["contact"], "name": shop["name"]}
+            candidates.append(response_row)
 
-    price = material_price + \
-            get_path_len(lon_1, lat_1, float(request.args["target_lon"]), float(request.args["target_lat"])) * \
-            koeff
+    resp = jsonify({
+        "body": {
+            "shops": sorted(candidates, key=lambda x: x["final_price"], reverse=True)
+        }})
+    resp.status_code = 200
+    return resp
 
-    return price
+
+app.run()
